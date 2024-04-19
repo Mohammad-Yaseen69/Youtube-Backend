@@ -1,0 +1,15 @@
+{
+  "name": "mega-youtube-project",
+  "version": "1.0.0",
+  "description": "A Backend of Youtube Like Application",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "javascript",
+    "Backend"
+  ],
+  "author": "Yaseen",
+  "license": "ISC"
+}
