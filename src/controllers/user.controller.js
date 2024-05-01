@@ -38,15 +38,15 @@ const registerUser = asyncHandler(async (req, res, next) => {
         throw new ApiError("User with this username or email already exist", 408)
     }
 
-    const avatarLocalPath = res?.files?.avatar?.[0]?.path
-    const coverImgLocalPath = res?.files?.coverImg?.[0]?.path
+    const avatarLocalPath = req?.files?.avatar?.[0]?.path
+    const coverImgLocalPath = req?.files?.coverImg?.[0]?.path
 
     if (!avatarLocalPath) {
         throw new ApiError("Avatar is required", 400)
     }
 
-    const avatar = uploadOnCloudinary(avatarLocalPath)
-    const coverImg = uploadOnCloudinary(coverImgLocalPath)
+    const avatar = await uploadOnCloudinary(avatarLocalPath)
+    const coverImg = await avatarLocalPath ? uploadOnCloudinary(coverImgLocalPath) : undefined
 
     if (!avatar) {
         throw new ApiError("Error uploading image", 500)
@@ -56,18 +56,19 @@ const registerUser = asyncHandler(async (req, res, next) => {
         fullName,
         email,
         userName,
+        password,
         avatar: avatar?.url,
-        coverImg: coverImg?.url
+        coverImg: coverImg?.url || ""
     })
 
 
-    const createdUser = User.findById(user._id).select("-password -refreshToken")
+    const createdUser = await User.findById(user._id).select("-password -refreshToken")
 
     if (!createdUser) {
         throw new ApiError("Error creating user", 500)
     }
 
-    console.log("email : ", email, req.body)
+    
 
     return res.status(201).json(
         new ApiResponse("User created successfully", createdUser , 200)
