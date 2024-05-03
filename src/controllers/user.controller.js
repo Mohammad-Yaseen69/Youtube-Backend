@@ -4,6 +4,25 @@ import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
+
+const generateAccessAndRefreshToken = async (userId) => {
+    try {
+        const user = await User.findById(userId)
+        const accessToken = await user.generateAccessToken()
+        const refreshToken = await user.generateRefreshToken()
+
+        user.refreshToken = refreshToken
+        await user.save({ validateBeforeSave: false })
+
+        return {
+            accessToken,
+            refreshToken
+        }
+    } catch (error) {
+        throw new ApiError(500, "Something went wrong while generating Tokens")
+    }
+}
+
 const registerUser = asyncHandler(async (req, res, next) => {
     // Steps:
     // Get user details from frontend
@@ -26,8 +45,8 @@ const registerUser = asyncHandler(async (req, res, next) => {
         throw new ApiError("Password must be at least 6 characters", 400)
     }
 
-    if (!email.includes("@") && !email.includes(".com")) {
-        throw new Error("Email must contains @", 400)
+    if (!email.includes("@")) {
+        throw new ApiError("Email must contains @", 400)
     }
 
     const existedUser = await User.findOne({
@@ -46,7 +65,7 @@ const registerUser = asyncHandler(async (req, res, next) => {
     }
 
     const avatar = await uploadOnCloudinary(avatarLocalPath)
-    const coverImg = await avatarLocalPath ? uploadOnCloudinary(coverImgLocalPath) : undefined
+    const coverImg = avatarLocalPath ? await uploadOnCloudinary(coverImgLocalPath) : undefined
 
     if (!avatar) {
         throw new ApiError("Error uploading image", 500)
@@ -68,11 +87,91 @@ const registerUser = asyncHandler(async (req, res, next) => {
         throw new ApiError("Error creating user", 500)
     }
 
-    
+
 
     return res.status(201).json(
-        new ApiResponse("User created successfully", createdUser , 200)
+        new ApiResponse("User created successfully", createdUser, 200)
     )
 })
 
-export { registerUser }
+
+const loginUser = asyncHandler(async (res, req, next) => {
+    // Steps:
+    //1) Get user details from postman
+    //2) check if this email or userName exist or not
+    //3) assign refresh token
+    //4) verify password
+    //5) return boolean value based on if user logged in or not
+
+    const { email, userName, password } = req.body
+
+    if (!email || !userName) {
+        throw new ApiError(400, "userName or email is required")
+    }
+
+    const user = await User.findOne({
+        $or: { userName, email }
+    })
+
+    if (!user) {
+        throw new ApiError(404, "User Not Found")
+    }
+
+    const isPasswordCorrect = await user.checkPassword(password)
+
+    if (!isPasswordCorrect) {
+        throw new ApiError(401, "Invalid Credentials")
+    }
+
+    const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user._id)
+
+    const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
+
+    const options = {
+        httpOnly: true,
+        secure: true,
+    }
+
+    return res.
+        status(200).
+        cookie("refreshToken", refreshToken, options).
+        cookie("accessToken", accessToken, options).
+        json(
+            new ApiResponse("User logged in successfully", {
+                user: loggedInUser,
+                accessToken,
+                refreshToken,
+            }, 200)
+        )
+
+})
+
+const logoutUser = asyncHandler(async (req, res, next) => {
+    await User.findByIdAndUpdate(req.user._id,
+        {
+            $set: { refreshToken: undefined },
+        },
+        {
+            new : true
+        }
+    )
+
+    const options = {
+        httpOnly: true,
+        secure: true,
+    }
+
+    return res.
+        status(200).
+        clearCookie("refreshToken", options).
+        clearCookie("accessToken", options).
+        json(
+            new ApiResponse("User logged out successfully", null, 200)
+        )
+
+})
+export {
+    registerUser,
+    loginUser,
+    logoutUser
+}
