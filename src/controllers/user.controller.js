@@ -3,7 +3,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
-
+import jwt from 'jsonwebtoken'
 
 const generateAccessAndRefreshToken = async (userId) => {
     try {
@@ -19,7 +19,7 @@ const generateAccessAndRefreshToken = async (userId) => {
             refreshToken
         }
     } catch (error) {
-        throw new ApiError(500, "Something went wrong while generating Tokens")
+        throw new ApiError("Something went wrong while generating Tokens" , 500)
     }
 }
 
@@ -95,7 +95,7 @@ const registerUser = asyncHandler(async (req, res, next) => {
 })
 
 
-const loginUser = asyncHandler(async (res, req, next) => {
+const loginUser = asyncHandler(async (req, res, next) => {
     // Steps:
     //1) Get user details from postman
     //2) check if this email or userName exist or not
@@ -105,22 +105,29 @@ const loginUser = asyncHandler(async (res, req, next) => {
 
     const { email, userName, password } = req.body
 
-    if (!email || !userName) {
-        throw new ApiError(400, "userName or email is required")
+    if (!(email || userName)) {
+        throw new ApiError("userName or email is required",400)
     }
 
-    const user = await User.findOne({
-        $or: { userName, email }
-    })
+    let query = {};
+
+    if (email) {
+        query.email = email;
+    }
+    else{
+        query.userName = userName
+    }
+
+    const user = await User.findOne(query)
 
     if (!user) {
-        throw new ApiError(404, "User Not Found")
+        throw new ApiError("User Not Found" , 404)
     }
 
     const isPasswordCorrect = await user.checkPassword(password)
 
     if (!isPasswordCorrect) {
-        throw new ApiError(401, "Invalid Credentials")
+        throw new ApiError("Invalid Credentials" , 401)
     }
 
     const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user._id)
@@ -149,13 +156,13 @@ const loginUser = asyncHandler(async (res, req, next) => {
 const logoutUser = asyncHandler(async (req, res, next) => {
     await User.findByIdAndUpdate(req.user._id,
         {
-            $set: { refreshToken: undefined },
+            $unset: { refreshToken: "" },
         },
         {
             new : true
         }
     )
-
+    console.log(req.user)
     const options = {
         httpOnly: true,
         secure: true,
