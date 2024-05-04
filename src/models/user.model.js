@@ -1,6 +1,7 @@
 import mongoose, { Schema } from "mongoose";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
+import { ApiError } from "../utils/ApiError.js";
 
 const userSchema = new Schema({
     userName: {
@@ -54,7 +55,12 @@ userSchema.pre("save", async function (next) {
 
 
 userSchema.methods.checkPassword = async function (password) {
-    return await bcrypt.compare(password, this.password)
+    try {
+        const result = await bcrypt.compare(password, this.password);
+        return result;
+    } catch (error) {
+        throw new ApiError("bcrypt Error" ,error.message);
+    }
 }
 
 userSchema.methods.generateAccessToken = function () {
