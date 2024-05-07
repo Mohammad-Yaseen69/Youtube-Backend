@@ -291,19 +291,20 @@ const updateAvatar = asyncHandler(async (req, res, next) => {
         throw new ApiError("User not found", 404)
     }
 
-    const avatarPublicId = user?.avatar?.split('/').pop().split('.')[0]
-    const deleteAvatar = await avatarPublicId ? deleteFile(avatarPublicId) : null
-
-    if (!deleteAvatar) {
-        throw new ApiError("Error deleting image", 500)
-    }
     const avatar = avatarLocalPath ? await uploadOnCloudinary(avatarLocalPath) : null
 
     if (!avatar) {
         throw new ApiError("Error uploading image", 500)
     }
 
-    user.avatar = avatar?.url || ""
+    const avatarPublicId = user?.avatar?.split('/').pop().split('.')[0]
+    const deleteAvatar = await avatarPublicId ? deleteFile(avatarPublicId) : null
+
+    if (!deleteAvatar) {
+        throw new ApiError("Error deleting image", 500)
+    }
+
+    user.avatar = avatar?.url
 
     user.save({ validateBeforeSave: false })
     return res.status(200).json(
@@ -323,16 +324,20 @@ const updateCoverImg = asyncHandler(async (req, res, next) => {
     if (!user) {
         throw new ApiError("User not found", 404)
     }
+    const coverImg = coverImgLocalPath ? await uploadOnCloudinary(coverImgLocalPath) : null
 
+    if(!coverImg){
+        throw new ApiError("Error uploading image", 500)
+    }
+    
     const coverImgPublicId = user?.coverImg?.split('/').pop().split('.')[0]
     const deleteCoverImg = await coverImgPublicId ? deleteFile(coverImgPublicId) : null
 
     if (!deleteCoverImg) {
         throw new ApiError("Error deleting image", 500)
     }
-    const coverImg = coverImgLocalPath ? await uploadOnCloudinary(coverImgLocalPath) : null
 
-    user.coverImg = coverImg?.url || ""
+    user.coverImg = coverImg?.url
 
     await user.save({ validateBeforeSave: false })
 
