@@ -411,7 +411,7 @@ const getUserProfileDetails = asyncHandler(async (req, res, next) => {
 
     return res
         .status(200)
-        .json("Data fetched Successfully", channel[0], 200)
+        .json(new ApiResponse("Data fetched Successfully", channel[0], 200))
 })
 
 
@@ -464,7 +464,7 @@ const getWatchHistory = asyncHandler(async (req, res, next) => {
 
     return res.
         status(200).
-        json(new ApiResponse("Data fetched Successfully", user[0].watchHistory, 200))
+        json(new ApiResponse("Data fetched Successfully", user[0]?.watchHistory, 200))
 })
 
 export {
