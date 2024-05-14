@@ -4,13 +4,18 @@ import { ApiError } from "../utils/ApiError.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
 import { asyncHandler } from "../utils/asyncHandler.js"
 import { Likes } from "../models/likes.model.js"
+import { Video } from "../models/video.model.js"
 
 const getVideoComments = asyncHandler(async (req, res) => {
     //TODO: get all comments for a video
     const { videoId } = req.params
     const { page = 1, limit = 10 } = req.query
 
-    const aggregations = await Comment.aggregate([
+    const video = await Video.findById(videoId)
+
+    if (!video) throw new ApiError("Video not found" , 404)
+
+    const aggregations = Comment.aggregate([
         {
             $match: {
                 video: new mongoose.Types.ObjectId(videoId)
@@ -71,6 +76,7 @@ const getVideoComments = asyncHandler(async (req, res) => {
         }
     ])
 
+
     const options = {
         page: parseInt(page, 10),
         limit: parseInt(limit, 10),
@@ -86,9 +92,9 @@ const addComment = asyncHandler(async (req, res) => {
     const { videoId } = req.params
     const { content } = req.body
 
-    if (!isValidObjectId(videoId)) throw new ApiError(400, "Invalid video id")
+    if (!isValidObjectId(videoId)) throw new ApiError("Invalid video id" ,400)
 
-    if (!content) throw new ApiError(400, "Content is required")
+    if (!content) throw new ApiError("Content is required" , 400)
 
     const comment = await Comment.create({
         content,
@@ -107,21 +113,21 @@ const updateComment = asyncHandler(async (req, res) => {
     const { content } = req.body
 
     if (!isValidObjectId(commentId)) {
-        throw new ApiError(400, "Invalid comment id")
+        throw new ApiError("Invalid comment id", 400)
     }
 
     if (!content) {
-        throw new ApiError(400, "Content is required")
+        throw new ApiError("Content is required", 400)
     }
 
     const comment = await Comment.findById(commentId)
 
     if (!comment) {
-        throw new ApiError(404, "Comment not found")
+        throw new ApiError("Comment not found", 404)
     }
 
-    if (comment?.owner.toString() !== req.user?._id) {
-        throw new ApiError(401, "Unauthorized")
+    if (comment?.owner.toString() !== req.user?._id.toString()) {
+        throw new ApiError("Unauthorized", 401)
     }
 
     const updatedComment = await Comment.findByIdAndUpdate(commentId, {
@@ -131,7 +137,7 @@ const updateComment = asyncHandler(async (req, res) => {
     }, { new: true })
 
     if (!updatedComment) {
-        throw new ApiError(500, "Error while updating comment")
+        throw new ApiError("Error while updating comment", 500)
     }
 
     return res.status(200)
@@ -144,19 +150,19 @@ const deleteComment = asyncHandler(async (req, res) => {
     const comment = await Comment.findById(commentId)
 
     if (!isValidObjectId(commentId)) {
-        throw new ApiError(400, "Invalid comment id")
+        throw new ApiError("Invalid comment id", 400)
     }
 
     if (!comment) {
-        throw new ApiError(404, "Comment not found")
+        throw new ApiError("Comment not found", 404)
     }
 
     if (comment?.owner.toString() != req.user?._id) {
-        throw new ApiError(401, "Unauthorized")
+        throw new ApiError("Unauthorized", 401)
     }
 
     await Likes.deleteMany({
-        comment : commentId,
+        comment: commentId,
     })
 
     await Comment.findByIdAndDelete(commentId)
