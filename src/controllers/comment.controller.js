@@ -3,12 +3,83 @@ import { Comment } from "../models/comments.model.js"
 import { ApiError } from "../utils/ApiError.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
 import { asyncHandler } from "../utils/asyncHandler.js"
+import { Likes } from "../models/likes.model.js"
 
 const getVideoComments = asyncHandler(async (req, res) => {
     //TODO: get all comments for a video
     const { videoId } = req.params
     const { page = 1, limit = 10 } = req.query
 
+    const aggregations = await Comment.aggregate([
+        {
+            $match: {
+                video: new mongoose.Types.ObjectId(videoId)
+            }
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "owner",
+                pipeline: [
+                    {
+                        $project: {
+                            _id: 1,
+                            userName: 1,
+                            avatar: 1,
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            $lookup: {
+                from: "likes",
+                localField: "_id",
+                foreignField: "comment",
+                as: "likes",
+                pipeline: [
+                    {
+                        $addFields: {
+                            likeCount: { $size: "$likes" },
+                            isLiked: {
+                                $cond: {
+                                    if: { $in: [req.user?._id, "$likes.likedBy"] },
+                                    then: true,
+                                    else: false,
+                                }
+                            }
+                        },
+                    }
+                ]
+            }
+        },
+        {
+            $sort: {
+                createdAt: -1
+            }
+        },
+        {
+            $project: {
+                content: 1,
+                createdAt: 1,
+                owner: 1,
+                "likes.likeCount": 1,
+                "likes.isLiked": 1,
+            }
+        }
+    ])
+
+    const options = {
+        page: parseInt(page, 10),
+        limit: parseInt(limit, 10),
+    }
+
+    const comments = await Comment.aggregatePaginate(aggregations, options)
+
+    return res.status(200)
+        .json(new ApiResponse("Comments fetched successfully", comments, 200))
 })
 
 const addComment = asyncHandler(async (req, res) => {
@@ -35,13 +106,33 @@ const updateComment = asyncHandler(async (req, res) => {
     const { commentId } = req.params
     const { content } = req.body
 
-    if (!isValidObjectId(commentId)) throw new ApiError(400, "Invalid comment id")
+    if (!isValidObjectId(commentId)) {
+        throw new ApiError(400, "Invalid comment id")
+    }
 
-    if (!content) throw new ApiError(400, "Content is required")
+    if (!content) {
+        throw new ApiError(400, "Content is required")
+    }
 
-    const updatedComment = await Comment.findByIdAndUpdate(commentId, { content }, { new: true })
+    const comment = await Comment.findById(commentId)
 
-    if (!updatedComment) throw new ApiError(500, "Error while updating comment")
+    if (!comment) {
+        throw new ApiError(404, "Comment not found")
+    }
+
+    if (comment?.owner.toString() !== req.user?._id) {
+        throw new ApiError(401, "Unauthorized")
+    }
+
+    const updatedComment = await Comment.findByIdAndUpdate(commentId, {
+        $set: {
+            content
+        }
+    }, { new: true })
+
+    if (!updatedComment) {
+        throw new ApiError(500, "Error while updating comment")
+    }
 
     return res.status(200)
         .json(new ApiResponse("Comment updated successfully", updatedComment, 200))
@@ -50,8 +141,23 @@ const updateComment = asyncHandler(async (req, res) => {
 const deleteComment = asyncHandler(async (req, res) => {
     const { commentId } = req.params
 
-    if (!isValidObjectId(commentId)) throw new ApiError(400, "Invalid comment id")
+    const comment = await Comment.findById(commentId)
 
+    if (!isValidObjectId(commentId)) {
+        throw new ApiError(400, "Invalid comment id")
+    }
+
+    if (!comment) {
+        throw new ApiError(404, "Comment not found")
+    }
+
+    if (comment?.owner.toString() != req.user?._id) {
+        throw new ApiError(401, "Unauthorized")
+    }
+
+    await Likes.deleteMany({
+        comment : commentId,
+    })
 
     await Comment.findByIdAndDelete(commentId)
 
