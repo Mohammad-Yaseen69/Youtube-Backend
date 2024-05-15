@@ -13,7 +13,7 @@ const getVideoComments = asyncHandler(async (req, res) => {
 
     const video = await Video.findById(videoId)
 
-    if (!video) throw new ApiError("Video not found" , 404)
+    if (!video) throw new ApiError("Video not found", 404)
 
     const aggregations = Comment.aggregate([
         {
@@ -44,20 +44,22 @@ const getVideoComments = asyncHandler(async (req, res) => {
                 localField: "_id",
                 foreignField: "comment",
                 as: "likes",
-                pipeline: [
-                    {
-                        $addFields: {
-                            likeCount: { $size: "$likes" },
-                            isLiked: {
-                                $cond: {
-                                    if: { $in: [req.user?._id, "$likes.likedBy"] },
-                                    then: true,
-                                    else: false,
-                                }
-                            }
+            }
+        },
+        {
+            $addFields: {
+                likes: {
+                    $size: "$likes"
+                },
+                isLiked: {
+                    $cond: {
+                        if: {
+                            $in: [req?.user?._id, "$likes.likedBy"]
                         },
+                        then: true,
+                        else: false
                     }
-                ]
+                }
             }
         },
         {
@@ -70,8 +72,8 @@ const getVideoComments = asyncHandler(async (req, res) => {
                 content: 1,
                 createdAt: 1,
                 owner: 1,
-                "likes.likeCount": 1,
-                "likes.isLiked": 1,
+                likes: 1,
+                isLiked: 1,
             }
         }
     ])
@@ -92,9 +94,9 @@ const addComment = asyncHandler(async (req, res) => {
     const { videoId } = req.params
     const { content } = req.body
 
-    if (!isValidObjectId(videoId)) throw new ApiError("Invalid video id" ,400)
+    if (!isValidObjectId(videoId)) throw new ApiError("Invalid video id", 400)
 
-    if (!content) throw new ApiError("Content is required" , 400)
+    if (!content) throw new ApiError("Content is required", 400)
 
     const comment = await Comment.create({
         content,
