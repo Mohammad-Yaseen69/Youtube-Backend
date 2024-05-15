@@ -20,11 +20,14 @@ import userRouter from './routes/user.routes.js'
 import subscriptionRoute from './routes/subscription.routes.js'
 import videoRoute from './routes/videos.routes.js'
 import commentRoute from './routes/comment.routes.js'
+import likeRoute from './routes/like.routes.js'
 
 
 app.use("/api/v1/users" , userRouter)
 app.use("/api/v1/subscriptions", subscriptionRoute)
-app.use('/api/v1/videos' , videoRoute),
+app.use('/api/v1/videos' , videoRoute)
 app.use('/api/v1/comments', commentRoute)
+app.use('/api/v1/likes', likeRoute)
+
 
 export { app }
