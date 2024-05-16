@@ -22,6 +22,7 @@ import videoRoute from './routes/videos.routes.js'
 import commentRoute from './routes/comment.routes.js'
 import likeRoute from './routes/like.routes.js'
 import tweetRoute from './routes/tweet.routes.js'
+import dashboardRoute from './routes/dashboard.routes.js'
 
 
 app.use("/api/v1/users" , userRouter)
@@ -30,5 +31,6 @@ app.use('/api/v1/videos' , videoRoute)
 app.use('/api/v1/comments', commentRoute)
 app.use('/api/v1/likes', likeRoute)
 app.use('/api/v1/tweets', tweetRoute)
+app.use('/api/v1/dashboard', dashboardRoute)
 
 export { app }
