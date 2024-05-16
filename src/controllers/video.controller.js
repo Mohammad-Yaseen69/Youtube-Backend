@@ -14,9 +14,11 @@ const getAllVideos = asyncHandler(async (req, res) => {
     //TODO: get all videos based on query, sort, pagination
     let pipeline = []
 
-    pipeline.push({$match : {
-        isPublished : true
-    }})
+    pipeline.push({
+        $match: {
+            isPublished: true
+        }
+    })
 
     if (query) {
         pipeline.push({
@@ -141,7 +143,7 @@ const publishAVideo = asyncHandler(async (req, res) => {
         videoFile: video?.url,
         thumbnail: thumbnail?.url,
         videoId: video?.public_id,
-        isPublished : true,
+        isPublished: true,
         thumbnailId: thumbnail?.public_id,
         owner: req?.user?._id,
         duration: video?.duration,
@@ -212,6 +214,14 @@ const getVideoById = asyncHandler(async (req, res) => {
         },
         {
             $lookup: {
+                from: "dislikes",
+                localField: "_id",
+                foreignField: "video",
+                as: "dislikes"
+            }
+        },
+        {
+            $lookup: {
                 from: "likes",
                 localField: "_id",
                 foreignField: "video",
@@ -227,6 +237,18 @@ const getVideoById = asyncHandler(async (req, res) => {
                     $cond: {
                         if: {
                             $in: [req?.user?._id, "$likes.likedBy"]
+                        },
+                        then: true,
+                        else: false
+                    }
+                },
+                dislikes: {
+                    $size: "$dislikes"
+                },
+                isDisliked: {
+                    $cond: {
+                        if: {
+                            $in: [req?.user?._id, "$dislikes.dislikedBy"]
                         },
                         then: true,
                         else: false
@@ -247,6 +269,8 @@ const getVideoById = asyncHandler(async (req, res) => {
                 views: 1,
                 likes: 1,
                 isLiked: 1,
+                dislikes: 1,
+                isDisliked: 1,
                 createdAt: 1,
                 isPublished: 1,
                 updatedAt: 1,

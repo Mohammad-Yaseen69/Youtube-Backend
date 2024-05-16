@@ -23,6 +23,7 @@ import commentRoute from './routes/comment.routes.js'
 import likeRoute from './routes/like.routes.js'
 import tweetRoute from './routes/tweet.routes.js'
 import dashboardRoute from './routes/dashboard.routes.js'
+import dislikeRoute from './routes/dislike.routes.js'
 
 
 app.use("/api/v1/users" , userRouter)
@@ -32,5 +33,6 @@ app.use('/api/v1/comments', commentRoute)
 app.use('/api/v1/likes', likeRoute)
 app.use('/api/v1/tweets', tweetRoute)
 app.use('/api/v1/dashboard', dashboardRoute)
+app.use('/api/v1/dislikes', dislikeRoute)
 
 export { app }

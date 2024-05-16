@@ -54,6 +54,14 @@ const getUserTweets = asyncHandler(async (req, res) => {
         },
         {
             $lookup: {
+                from: "dislikes",
+                localField: "_id",
+                foreignField: "tweet",
+                as: "dislikes",
+            }
+        },
+        {
+            $lookup: {
                 from: "likes",
                 localField: "_id",
                 foreignField: "tweet",
@@ -74,6 +82,18 @@ const getUserTweets = asyncHandler(async (req, res) => {
                 likes: {
                     $size: "$likes"
                 },
+                dislikes: {
+                    $size: "$dislikes"
+                },
+                isDisliked: {
+                    $cond: {
+                        if: {
+                            $in: [req?.user?._id, "$dislikes.dislikedBy"]
+                        },
+                        then: true,
+                        else: false
+                    }
+                }
             }
         },
         {
@@ -82,6 +102,8 @@ const getUserTweets = asyncHandler(async (req, res) => {
                 content: 1,
                 likes: 1,
                 isLiked: 1,
+                dislikes: 1,
+                isDisliked: 1,
                 createdAt: 1
             }
         }

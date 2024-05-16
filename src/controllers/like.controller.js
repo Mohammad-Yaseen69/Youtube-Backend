@@ -3,6 +3,7 @@ import { Likes } from "../models/likes.model.js"
 import { ApiError } from "../utils/ApiError.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
 import { asyncHandler } from "../utils/asyncHandler.js"
+import { Dislikes } from "../models/dislike.model.js"
 
 const toggleVideoLike = asyncHandler(async (req, res) => {
     const { videoId } = req.params
@@ -33,6 +34,11 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
     const like = await Likes.create({
         video: videoId,
         likedBy: req.user._id
+    })
+    
+    await Dislikes.deleteOne({
+        video: videoId,
+        dislikedBy: req.user._id
     })
 
     if (!like) {
@@ -76,6 +82,11 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
         likedBy: req.user._id
     })
 
+    await Dislikes.deleteOne({
+        comment: commentId,
+        dislikedBy: req.user._id
+    })
+
     if (!like) {
         throw new ApiError("Error while liking comment", 500)
     }
@@ -116,6 +127,11 @@ const toggleTweetLike = asyncHandler(async (req, res) => {
     const like = await Likes.create({
         tweet: tweetId,
         likedBy: req.user._id
+    })
+
+    await Dislikes.deleteOne({
+        tweet: tweetId,
+        dislikedBy: req.user._id
     })
 
     if (!like) {
