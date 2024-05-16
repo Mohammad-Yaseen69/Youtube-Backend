@@ -14,6 +14,10 @@ const getAllVideos = asyncHandler(async (req, res) => {
     //TODO: get all videos based on query, sort, pagination
     let pipeline = []
 
+    pipeline.push({$match : {
+        isPublished : true
+    }})
+
     if (query) {
         pipeline.push({
             $search: {
@@ -27,12 +31,14 @@ const getAllVideos = asyncHandler(async (req, res) => {
     }
 
     if (userId) {
-        if (!isValidObjectId) throw new ApiError("Invalid user id", 400),
-            pipeline.push({
-                $match: {
-                    owner: new mongoose.Types.ObjectId(userId)
-                }
-            })
+        if (!isValidObjectId(userId)) {
+            throw new ApiError("Invalid user id", 400)
+        }
+        pipeline.push({
+            $match: {
+                owner: new mongoose.Types.ObjectId(userId)
+            }
+        })
     }
 
     if (sortBy && sortType) {
@@ -55,7 +61,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
             from: "users",
             localField: "owner",
             foreignField: "_id",
-            as: "owner",
+            as: "ownerDetails",
             pipeline: [
                 {
                     $project: {
@@ -65,6 +71,23 @@ const getAllVideos = asyncHandler(async (req, res) => {
                     }
                 }
             ]
+        }
+    })
+
+    pipeline.push({
+        $unwind: "$ownerDetails"
+    })
+
+    pipeline.push({
+        $project: {
+            owner: 1,
+            duration: 1,
+            title: 1,
+            description: 1,
+            createdAt: 1,
+            videoFile: 1,
+            thumbnail: 1,
+            views: 1,
         }
     })
 
@@ -118,6 +141,7 @@ const publishAVideo = asyncHandler(async (req, res) => {
         videoFile: video?.url,
         thumbnail: thumbnail?.url,
         videoId: video?.public_id,
+        isPublished : true,
         thumbnailId: thumbnail?.public_id,
         owner: req?.user?._id,
         duration: video?.duration,
