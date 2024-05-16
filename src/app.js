@@ -9,8 +9,8 @@ app.use(cors({
     credentials: true
 }))
 
-app.use(express.json({ limit: "16kb" }))
-app.use(express.urlencoded({ extended: true, limit: "16kb" }))
+app.use(express.json({ limit: "100mb" }))
+app.use(express.urlencoded({ extended: true, limit: "100mb" }))
 app.use(express.static("public"))
 app.use(cookieParser())
 
@@ -24,6 +24,7 @@ import likeRoute from './routes/like.routes.js'
 import tweetRoute from './routes/tweet.routes.js'
 import dashboardRoute from './routes/dashboard.routes.js'
 import dislikeRoute from './routes/dislike.routes.js'
+import playlistRoute from './routes/playlist.routes.js'
 
 
 app.use("/api/v1/users" , userRouter)
@@ -34,5 +35,6 @@ app.use('/api/v1/likes', likeRoute)
 app.use('/api/v1/tweets', tweetRoute)
 app.use('/api/v1/dashboard', dashboardRoute)
 app.use('/api/v1/dislikes', dislikeRoute)
+app.use('/api/v1/playlists', playlistRoute)
 
 export { app }

@@ -82,7 +82,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
 
     pipeline.push({
         $project: {
-            owner: 1,
+            ownerDetails: 1,
             duration: 1,
             title: 1,
             description: 1,
@@ -102,6 +102,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
 
     const videos = await Video.aggregatePaginate(aggregate, options)
 
+    console.log(pipeline)
     if (!videos) throw new ApiError("Error fetching videos", 500)
 
     return res.status(200)
